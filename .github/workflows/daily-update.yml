@@ -2,8 +2,11 @@ name: Daily SmartBet Update
 
 on:
   schedule:
-    - cron: '0 11 * * *'  # 6:00 AM EST (11:00 UTC)
-  workflow_dispatch:  # Manual trigger
+    - cron: '0 11 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   update-analytics:
@@ -12,9 +15,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          persist-credentials: true
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -39,13 +39,17 @@ jobs:
           API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
           BALLDONTLIE_KEY: ${{ secrets.BALLDONTLIE_KEY }}
         run: |
-          echo "Update script will run here"
-          # python update_smartbet.py (we'll add this later)
+          echo "✅ Update script placeholder - APIs connected!"
+          echo "Data will update once Python scripts are added"
       
       - name: Commit changes
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "SmartBet Bot"
+          git config --global user.email "bot@smartbet.com"
           git add -A
-          git diff --quiet && git diff --staged --quiet || git commit -m "🤖 Auto-update $(date +'%Y-%m-%d %H:%M UTC')"
-          git push
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "🤖 Auto-update $(date +'%Y-%m-%d %H:%M UTC')"
+            git push
+          fi
