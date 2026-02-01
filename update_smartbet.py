@@ -145,7 +145,7 @@ if __name__ == "__main__":
         print("🧮 GENERATING PREDICTIONS")
         print("=" * 60)
         
-        for fixture in fixtures[:3]:  # Process first 3 for testing
+        for fixture in fixtures:  # Process all fixtures
             home_team = fixture['homeTeam']['name']
             away_team = fixture['awayTeam']['name']
             
