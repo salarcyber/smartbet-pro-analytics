@@ -8,6 +8,7 @@ import json
 import requests
 from datetime import datetime
 import pytz
+import re
 
 # Import our Elo engine
 from elo_engine import EloEngine
@@ -84,29 +85,46 @@ def fetch_odds():
 def generate_html():
     """Generate the updated index.html file"""
     
-    # For now, just update the timestamp
     try:
+        # Check if index.html exists
+        if not os.path.exists('index.html'):
+            print("⚠️  index.html not found - creating placeholder")
+            with open('index.html', 'w') as f:
+                f.write('<html><body><h1>SmartBet Pro - Updating...</h1></body></html>')
+        
         with open('index.html', 'r') as f:
             html = f.read()
         
         # Update timestamp
-        current_time = datetime.now(pytz.UTC).strftime('%A, %B %d, %Y at %I:%M %p UTC')
+        current_time = datetime.now(pytz.UTC)
+        date_str = current_time.strftime('%A, %B %d, %Y')
+        time_str = current_time.strftime('%I:%M %p UTC')
         
-        # Simple string replacement for now
-        # (In production, we'd use Jinja2 templates)
-        html = html.replace(
-            'Saturday, January 31, 2026',
-            current_time.split(' at ')[0]
-        )
+        # Replace any date pattern like "Saturday, January 31, 2026"
+        date_pattern = r'[A-Z][a-z]+day,\s+[A-Z][a-z]+\s+\d{1,2},\s+\d{4}'
+        if re.search(date_pattern, html):
+            html = re.sub(date_pattern, date_str, html)
+            print(f"✅ Updated date to: {date_str}")
+        else:
+            print("⚠️  Date pattern not found in HTML")
+        
+        # Add a comment with last update time
+        update_comment = f'\n<!-- Last updated: {current_time.strftime("%Y-%m-%d %H:%M:%S UTC")} -->\n'
+        if '</body>' in html:
+            html = html.replace('</body>', f'{update_comment}</body>')
         
         with open('index.html', 'w') as f:
             f.write(html)
         
-        print(f"✅ Updated HTML with timestamp: {current_time}")
+        print(f"✅ Updated HTML successfully")
+        print(f"   Date: {date_str}")
+        print(f"   Time: {time_str}")
         return True
         
     except Exception as e:
         print(f"❌ Error updating HTML: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 # Main execution
