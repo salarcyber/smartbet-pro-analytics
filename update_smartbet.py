@@ -1,6 +1,6 @@
 """
 SmartBet Pro Analytics - Main Update Script
-Fetches data, runs models, generates HTML
+Fetches data, runs models, generates HTML from Jinja2 template
 """
 
 import os
@@ -8,7 +8,7 @@ import json
 import requests
 from datetime import datetime
 import pytz
-import re
+from jinja2 import Environment, FileSystemLoader
 
 # Import our Elo engine
 from elo_engine import EloEngine
@@ -82,48 +82,41 @@ def fetch_odds():
         print(f"❌ Error fetching odds: {e}")
         return []
 
-# Generate updated HTML
-def generate_html():
-    """Generate the updated index.html file"""
+# Generate HTML from template
+def generate_html(matches_data):
+    """Generate HTML from Jinja2 template with match data"""
     
     try:
-        # Check if index.html exists
-        if not os.path.exists('index.html'):
-            print("⚠️  index.html not found - creating placeholder")
-            with open('index.html', 'w') as f:
-                f.write('<html><body><h1>SmartBet Pro - Updating...</h1></body></html>')
+        # Set up Jinja2 environment
+        env = Environment(loader=FileSystemLoader('templates'))
+        template = env.get_template('base.html')
         
-        with open('index.html', 'r') as f:
-            html = f.read()
-        
-        # Update timestamp
+        # Get current time
         current_time = datetime.now(pytz.UTC)
-        date_str = current_time.strftime('%A, %B %d, %Y')
-        time_str = current_time.strftime('%I:%M %p UTC')
         
-        # Replace any date pattern like "Saturday, January 31, 2026"
-        date_pattern = r'[A-Z][a-z]+day,\s+[A-Z][a-z]+\s+\d{1,2},\s+\d{4}'
-        if re.search(date_pattern, html):
-            html = re.sub(date_pattern, date_str, html)
-            print(f"✅ Updated date to: {date_str}")
-        else:
-            print("⚠️  Date pattern not found in HTML")
+        # Prepare template data
+        template_data = {
+            'current_date': current_time.strftime('%A, %B %d, %Y'),
+            'current_time': current_time.strftime('%Y-%m-%d %H:%M:%S UTC'),
+            'soccer_matches': matches_data,
+            'nba_matches': []  # TODO: Add NBA later
+        }
         
-        # Add a comment with last update time
-        update_comment = f'\n<!-- Last updated: {current_time.strftime("%Y-%m-%d %H:%M:%S UTC")} -->\n'
-        if '</body>' in html:
-            html = html.replace('</body>', f'{update_comment}</body>')
+        # Render template
+        html_output = template.render(**template_data)
         
+        # Write to index.html
         with open('index.html', 'w') as f:
-            f.write(html)
+            f.write(html_output)
         
-        print(f"✅ Updated HTML successfully")
-        print(f"   Date: {date_str}")
-        print(f"   Time: {time_str}")
+        print(f"✅ Generated HTML successfully")
+        print(f"   Date: {template_data['current_date']}")
+        print(f"   Time: {template_data['current_time']}")
+        print(f"   Matches: {len(matches_data)}")
         return True
         
     except Exception as e:
-        print(f"❌ Error updating HTML: {e}")
+        print(f"❌ Error generating HTML: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -140,7 +133,9 @@ if __name__ == "__main__":
     # Fetch odds
     odds = fetch_odds()
     
-    # Generate predictions for each match
+    # Process matches and generate predictions
+    matches_data = []
+    
     if fixtures:
         print("\n" + "=" * 60)
         print("🧮 GENERATING PREDICTIONS")
@@ -158,12 +153,27 @@ if __name__ == "__main__":
             print(f"   Home Elo: {prediction['home_rating']}")
             print(f"   Away Elo: {prediction['away_rating']}")
             print(f"   Win Prob: {prediction['home_win_prob']:.1%} / {prediction['draw_prob']:.1%} / {prediction['away_win_prob']:.1%}")
+            
+            # Build match data dict
+            match_data = {
+                'home_team': home_team,
+                'away_team': away_team,
+                'home_rating': prediction['home_rating'],
+                'away_rating': prediction['away_rating'],
+                'home_win_prob': prediction['home_win_prob'],
+                'draw_prob': prediction['draw_prob'],
+                'away_win_prob': prediction['away_win_prob'],
+                'venue': fixture.get('venue', 'TBD'),
+                'time': fixture.get('utcDate', 'TBD')
+            }
+            
+            matches_data.append(match_data)
     
-    # Update HTML
+    # Generate HTML from template
     print("\n" + "=" * 60)
-    print("📄 UPDATING WEBSITE")
+    print("📄 GENERATING WEBSITE")
     print("=" * 60)
-    generate_html()
+    generate_html(matches_data)
     
     print("\n" + "=" * 60)
     print("✅ UPDATE COMPLETE!")
