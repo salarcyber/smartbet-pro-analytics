@@ -36,8 +36,9 @@ def fetch_pl_fixtures():
     try:
         url = "https://api.football-data.org/v4/competitions/PL/matches"
         headers = {'X-Auth-Token': FOOTBALL_DATA_KEY}
+        
+        # Fetch ALL games from today (no status filter)
         params = {
-            'status': 'SCHEDULED',
             'dateFrom': datetime.now().strftime('%Y-%m-%d'),
             'dateTo': datetime.now().strftime('%Y-%m-%d')
         }
@@ -145,7 +146,7 @@ if __name__ == "__main__":
         print("🧮 GENERATING PREDICTIONS")
         print("=" * 60)
         
-        for fixture in fixtures:  # Process all fixtures
+        for fixture in fixtures:  # Process ALL fixtures
             home_team = fixture['homeTeam']['name']
             away_team = fixture['awayTeam']['name']
             
